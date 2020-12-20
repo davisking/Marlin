@@ -75,10 +75,8 @@
 
 static xyze_pos_t resume_position;
 
-#if HAS_LCD_MENU
-  PauseMenuResponse pause_menu_response;
-  PauseMode pause_mode = PAUSE_MODE_PAUSE_PRINT;
-#endif
+PauseMenuResponse pause_menu_response;
+PauseMode pause_mode = PAUSE_MODE_PAUSE_PRINT;
 
 fil_change_settings_t fc_settings[EXTRUDERS];
 
@@ -284,10 +282,14 @@ bool load_filament(const float &slow_load_length/*=0*/, const float &fast_load_l
           lcd_pause_show_message(PAUSE_MESSAGE_OPTION);
           while (pause_menu_response == PAUSE_RESPONSE_WAIT_FOR) idle_no_sleep();
         }
+      #else
+          KEEPALIVE_STATE(PAUSED_FOR_USER);
+	  wait_for_user_response(0, true); // Wait for LCD click or M108
+          //while (pause_menu_response == PAUSE_RESPONSE_WAIT_FOR) idle_no_sleep();
       #endif
 
       // Keep looping if "Purge More" was selected
-    } while (TERN0(HAS_LCD_MENU, show_lcd && pause_menu_response == PAUSE_RESPONSE_EXTRUDE_MORE));
+    } while (pause_menu_response == PAUSE_RESPONSE_EXTRUDE_MORE);
 
   #endif
   TERN_(HOST_PROMPT_SUPPORT, host_action_prompt_end());
