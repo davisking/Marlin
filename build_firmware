@@ -1,0 +1,6 @@
+
+platformio run --target clean -e STM32F103RET6_creality
+
+platformio run -e STM32F103RET6_creality
+
+echo firmware in .pio/build/STM32F103RET6_creality
