@@ -41,7 +41,7 @@
   #include "pause.h"
 #endif
 
-//#define FILAMENT_RUNOUT_SENSOR_DEBUG
+#define FILAMENT_RUNOUT_SENSOR_DEBUG
 #ifndef FILAMENT_RUNOUT_THRESHOLD
   #define FILAMENT_RUNOUT_THRESHOLD 5
 #endif
@@ -226,16 +226,30 @@ class FilamentSensorBase {
    * filament runout and stripouts or jams.
    */
   class FilamentSensorEncoder : public FilamentSensorBase {
-    private:
-      static uint8_t motion_detected;
-
-      static inline void poll_motion_sensor() {
+    public:
+      // This is called inside an interrupt and does the actual work of reporting if the
+      // filament is still there.
+      static inline void block_completed(const block_t* const b) {
         static uint8_t old_state;
         const uint8_t new_state = poll_runout_pins(),
-                      change    = old_state ^ new_state;
+                      motion_detected    = old_state ^ new_state;
         old_state = new_state;
 
+
+        // If the sensor wheel has moved since the last call to
+        // this method reset the runout counter for the extruder.
+        if (TEST(motion_detected, b->extruder))
+          filament_present(b->extruder);
+      }
+
+      // This is called in the main Marlin loop.  We just have this for debugging.
+      static inline void run() {
         #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
+          static uint8_t old_state;
+          const uint8_t new_state = poll_runout_pins(),
+                        change    = old_state ^ new_state;
+          old_state = new_state;
+
           if (change) {
             SERIAL_ECHOPGM("Motion detected:");
             LOOP_L_N(e, NUM_RUNOUT_SENSORS)
@@ -243,22 +257,7 @@ class FilamentSensorBase {
             SERIAL_EOL();
           }
         #endif
-
-        motion_detected |= change;
       }
-
-    public:
-      static inline void block_completed(const block_t* const b) {
-        // If the sensor wheel has moved since the last call to
-        // this method reset the runout counter for the extruder.
-        if (TEST(motion_detected, b->extruder))
-          filament_present(b->extruder);
-
-        // Clear motion triggers for next block
-        motion_detected = 0;
-      }
-
-      static inline void run() { poll_motion_sensor(); }
   };
 
 #else
