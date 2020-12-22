@@ -35,6 +35,7 @@
 #include "../HAL/shared/Delay.h"
 
 #include "../lcd/marlinui.h"
+#include "../feature/runout.h"
 
 #if ENABLED(DWIN_CREALITY_LCD)
   #include "../lcd/dwin/e3v2/dwin.h"
@@ -2774,6 +2775,8 @@ void Temperature::tick() {
   //
   static bool do_buttons;
   if ((do_buttons ^= true)) ui.update_buttons();
+
+  runout.measure_filament();
 
   /**
    * One sensor is sampled on every other call of the ISR.

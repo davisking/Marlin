@@ -96,6 +96,11 @@ class TFilamentMonitor : public FilamentMonitorBase {
       response.reset();
     }
 
+    // Quickly look at the state of the filament runout sensor and record if the filament has moved.
+    static inline void measure_filament() {
+      sensor.measure_filament();
+    }
+
     // Call this method when filament is present,
     // so the response can reset its counter.
     static inline void filament_present(const uint8_t extruder) {
@@ -239,10 +244,15 @@ class FilamentSensorBase {
       uint8_t motion_detected = 0;
 
     public:
+
+      inline void measure_filament() {
+        motion_detected |= recent_motion();
+      }
+
       // This is called inside an interrupt and does the actual work of reporting if the
       // filament is still there.
       inline void block_completed(const block_t* const b) {
-        motion_detected |= recent_motion();
+        measure_filament();
 
         // If the sensor wheel has moved since the last call to
         // this method reset the runout counter for the extruder.
@@ -255,7 +265,7 @@ class FilamentSensorBase {
 
       // This is called in the main Marlin loop.
       inline void run() {
-        motion_detected = recent_motion();
+        measure_filament();
         #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
           if (motion_detected) {
             SERIAL_ECHOPGM("Motion detected:");
