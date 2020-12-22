@@ -77,6 +77,7 @@ class FilamentMonitorBase {
     #endif
 };
 
+
 template<class RESPONSE_T, class SENSOR_T>
 class TFilamentMonitor : public FilamentMonitorBase {
   private:
@@ -139,6 +140,9 @@ class TFilamentMonitor : public FilamentMonitorBase {
       }
     }
 };
+
+template<class RESPONSE_T, class SENSOR_T>
+SENSOR_T TFilamentMonitor<RESPONSE_T, SENSOR_T>::sensor;
 
 /*************************** FILAMENT PRESENCE SENSORS ***************************/
 
