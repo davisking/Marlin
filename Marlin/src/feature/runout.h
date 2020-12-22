@@ -249,6 +249,7 @@ class FilamentSensorBase {
         if (TEST(motion_detected, b->extruder))
           filament_present(b->extruder);
 
+        // Clear motion triggers for next block
         motion_detected = 0;
       }
 
