@@ -226,34 +226,41 @@ class FilamentSensorBase {
    * filament runout and stripouts or jams.
    */
   class FilamentSensorEncoder : public FilamentSensorBase {
+    private:
+      static inline uint8_t recent_motion()  {
+        static uint8_t old_state;
+
+        const uint8_t new_state = poll_runout_pins();
+        const uint8_t changed = old_state ^ new_state;
+        old_state = new_state;
+        return changed;
+      }
+
+      static uint8_t motion_detected;
+
     public:
       // This is called inside an interrupt and does the actual work of reporting if the
       // filament is still there.
       static inline void block_completed(const block_t* const b) {
-        static uint8_t old_state;
-        const uint8_t new_state = poll_runout_pins(),
-                      motion_detected    = old_state ^ new_state;
-        old_state = new_state;
-
+        motion_detected |= recent_motion();
 
         // If the sensor wheel has moved since the last call to
         // this method reset the runout counter for the extruder.
         if (TEST(motion_detected, b->extruder))
           filament_present(b->extruder);
+
+        // Clear motion triggers for next block
+        motion_detected = 0;
       }
 
-      // This is called in the main Marlin loop.  We just have this for debugging.
+      // This is called in the main Marlin loop.
       static inline void run() {
+        motion_detected = recent_motion();
         #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
-          static uint8_t old_state;
-          const uint8_t new_state = poll_runout_pins(),
-                        change    = old_state ^ new_state;
-          old_state = new_state;
-
-          if (change) {
+          if (motion_detected) {
             SERIAL_ECHOPGM("Motion detected:");
             LOOP_L_N(e, NUM_RUNOUT_SENSORS)
-              if (TEST(change, e)) SERIAL_CHAR(' ', '0' + e);
+              if (TEST(motion_detected, e)) SERIAL_CHAR(' ', '0' + e);
             SERIAL_EOL();
           }
         #endif
