@@ -233,8 +233,10 @@ class FilamentSensorBase {
         const uint8_t new_state = poll_runout_pins();
         const uint8_t changed = old_state ^ new_state;
         old_state = new_state;
-	motion_counter++;
-	if (changed) motion_hit_counter++;
+        motion_counter++;
+        if (changed) {
+          motion_hit_counter++;
+        }
         return changed;
       }
 
@@ -266,18 +268,18 @@ class FilamentSensorBase {
             SERIAL_ECHOPGM("Motion detected:");
             LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
               if (TEST(motion_detected, e)) {
-		      SERIAL_CHAR(' ', '0' + e);
-		      filament_present(e);
-	      }
-	    }
+                SERIAL_CHAR(' ', '0' + e);
+                filament_present(e);
+              }
+            }
             SERIAL_EOL();
           }
-	#else
-            LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
-              if (TEST(motion_detected, e)) {
-		      filament_present(e);
-	      }
-	    }
+        #else
+          LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
+            if (TEST(motion_detected, e)) {
+              filament_present(e);
+            }
+          }
         #endif
         // Clear motion triggers for next block
         motion_detected = 0;
