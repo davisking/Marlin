@@ -233,12 +233,17 @@ class FilamentSensorBase {
         const uint8_t new_state = poll_runout_pins();
         const uint8_t changed = old_state ^ new_state;
         old_state = new_state;
+	motion_counter++;
+	if (changed) motion_hit_counter++;
         return changed;
       }
 
       static uint8_t motion_detected;
 
     public:
+      static uint32_t motion_counter;
+      static uint32_t motion_hit_counter;
+
       // This is called inside an interrupt and does the actual work of reporting if the
       // filament is still there.
       static inline void block_completed(const block_t* const b) {
@@ -255,15 +260,27 @@ class FilamentSensorBase {
 
       // This is called in the main Marlin loop.
       static inline void run() {
-        motion_detected = recent_motion();
+        motion_detected |= recent_motion();
         #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
           if (motion_detected) {
             SERIAL_ECHOPGM("Motion detected:");
-            LOOP_L_N(e, NUM_RUNOUT_SENSORS)
-              if (TEST(motion_detected, e)) SERIAL_CHAR(' ', '0' + e);
+            LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
+              if (TEST(motion_detected, e)) {
+		      SERIAL_CHAR(' ', '0' + e);
+		      filament_present(e);
+	      }
+	    }
             SERIAL_EOL();
           }
+	#else
+            LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
+              if (TEST(motion_detected, e)) {
+		      filament_present(e);
+	      }
+	    }
         #endif
+        // Clear motion triggers for next block
+        motion_detected = 0;
       }
   };
 
@@ -334,6 +351,10 @@ class FilamentSensorBase {
             LOOP_L_N(i, EXTRUDERS) {
               serialprintPGM(i ? PSTR(", ") : PSTR("Remaining mm: "));
               SERIAL_ECHO(runout_mm_countdown[i]);
+              serialprintPGM(" count: ");
+              SERIAL_ECHO(FilamentSensorEncoder::motion_counter);
+              serialprintPGM(" / ");
+              SERIAL_ECHO(FilamentSensorEncoder::motion_hit_counter);
             }
             SERIAL_EOL();
           }
