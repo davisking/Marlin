@@ -50,8 +50,6 @@ bool FilamentMonitorBase::enabled = true,
   volatile float RunoutResponseDelayed::runout_mm_countdown[EXTRUDERS];
   #if ENABLED(FILAMENT_MOTION_SENSOR)
     uint8_t FilamentSensorEncoder::motion_detected;
-    uint32_t FilamentSensorEncoder::motion_counter;
-    uint32_t FilamentSensorEncoder::motion_hit_counter;
   #endif
 #else
   int8_t RunoutResponseDebounced::runout_count; // = 0

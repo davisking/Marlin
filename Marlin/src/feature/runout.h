@@ -43,7 +43,7 @@
 
 //#define FILAMENT_RUNOUT_SENSOR_DEBUG
 #ifndef FILAMENT_RUNOUT_THRESHOLD
-  #define FILAMENT_RUNOUT_THRESHOLD 30
+  #define FILAMENT_RUNOUT_THRESHOLD 5
 #endif
 
 void event_filament_runout();
@@ -227,30 +227,28 @@ class FilamentSensorBase {
    */
   class FilamentSensorEncoder : public FilamentSensorBase {
     private:
-      static inline uint8_t recent_motion()  {
-        static uint8_t old_state;
-
-        const uint8_t new_state = poll_runout_pins();
-        const uint8_t changed = old_state ^ new_state;
-        old_state = new_state;
-        motion_counter++;
-        if (changed) {
-          motion_hit_counter++;
-        }
-        return changed;
-      }
-
       static uint8_t motion_detected;
 
+      static inline void poll_motion_sensor() {
+        static uint8_t old_state;
+        const uint8_t new_state = poll_runout_pins(),
+                      change    = old_state ^ new_state;
+        old_state = new_state;
+
+        #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
+          if (change) {
+            SERIAL_ECHOPGM("Motion detected:");
+            LOOP_L_N(e, NUM_RUNOUT_SENSORS)
+              if (TEST(change, e)) SERIAL_CHAR(' ', '0' + e);
+            SERIAL_EOL();
+          }
+        #endif
+
+        motion_detected |= change;
+      }
+
     public:
-      static uint32_t motion_counter;
-      static uint32_t motion_hit_counter;
-
-      // This is called inside an interrupt and does the actual work of reporting if the
-      // filament is still there.
       static inline void block_completed(const block_t* const b) {
-        motion_detected |= recent_motion();
-
         // If the sensor wheel has moved since the last call to
         // this method reset the runout counter for the extruder.
         if (TEST(motion_detected, b->extruder))
@@ -260,30 +258,7 @@ class FilamentSensorBase {
         motion_detected = 0;
       }
 
-      // This is called in the main Marlin loop.
-      static inline void run() {
-        motion_detected |= recent_motion();
-        #ifdef FILAMENT_RUNOUT_SENSOR_DEBUG
-          if (motion_detected) {
-            SERIAL_ECHOPGM("Motion detected:");
-            LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
-              if (TEST(motion_detected, e)) {
-                SERIAL_CHAR(' ', '0' + e);
-                filament_present(e);
-              }
-            }
-            SERIAL_EOL();
-          }
-        #else
-          LOOP_L_N(e, NUM_RUNOUT_SENSORS) {
-            if (TEST(motion_detected, e)) {
-              filament_present(e);
-            }
-          }
-        #endif
-        // Clear motion triggers for next block
-        motion_detected = 0;
-      }
+      static inline void run() { poll_motion_sensor(); }
   };
 
 #else
@@ -353,10 +328,6 @@ class FilamentSensorBase {
             LOOP_L_N(i, EXTRUDERS) {
               serialprintPGM(i ? PSTR(", ") : PSTR("Remaining mm: "));
               SERIAL_ECHO(runout_mm_countdown[i]);
-              serialprintPGM(" count: ");
-              SERIAL_ECHO(FilamentSensorEncoder::motion_counter);
-              serialprintPGM(" / ");
-              SERIAL_ECHO(FilamentSensorEncoder::motion_hit_counter);
             }
             SERIAL_EOL();
           }
