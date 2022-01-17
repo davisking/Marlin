@@ -682,6 +682,8 @@ void resume_print(const float &slow_load_length/*=0*/, const float &fast_load_le
 
   TERN_(HAS_DISPLAY, ui.reset_status());
   TERN_(HAS_LCD_MENU, ui.return_to_status());
+
+  first_impatient_beep(2);
 }
 
 #endif // ADVANCED_PAUSE_FEATURE
