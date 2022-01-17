@@ -525,7 +525,10 @@ inline bool Apply_Encoder(const ENCODER_DiffState &encoder_diffState, auto &valr
 #define PREPARE_CASE_ABS  (PREPARE_CASE_PLA + ENABLED(HAS_HOTEND))
 #define PREPARE_CASE_COOL (PREPARE_CASE_ABS + EITHER(HAS_HOTEND, HAS_HEATED_BED))
 #define PREPARE_CASE_LANG (PREPARE_CASE_COOL + 1)
-#define PREPARE_CASE_TOTAL PREPARE_CASE_LANG
+#define PREPARE_CASE_CHANGE_FILAMENT_200C (PREPARE_CASE_LANG + 1)
+#define PREPARE_CASE_CHANGE_FILAMENT_250C (PREPARE_CASE_CHANGE_FILAMENT_200C + 1)
+#define PREPARE_CASE_CHANGE_FILAMENT_260C (PREPARE_CASE_CHANGE_FILAMENT_250C + 1)
+#define PREPARE_CASE_TOTAL PREPARE_CASE_CHANGE_FILAMENT_260C
 
 #define CONTROL_CASE_TEMP 1
 #define CONTROL_CASE_MOVE  (CONTROL_CASE_TEMP + 1)
@@ -638,6 +641,11 @@ inline void Item_Prepare_Home(const uint8_t row) {
   }
 #endif
 
+  inline void Define_Item(const uint8_t row, const __FlashStringHelper *name) {
+    DWIN_Draw_String(false, false, font8x16, Color_White, Color_Bg_Black, LBLX, MBASE(row), name);
+    Draw_Menu_Line(row, ICON_Info);
+  }
+
 #if HAS_PREHEAT
   inline void Item_Prepare_Cool(const uint8_t row) {
     if (HMI_IsChinese())
@@ -689,10 +697,14 @@ inline void Draw_Prepare_Menu() {
     if (PVISI(PREPARE_CASE_PLA)) Item_Prepare_PLA(PSCROL(PREPARE_CASE_PLA));      // Preheat PLA
     if (PVISI(PREPARE_CASE_ABS)) Item_Prepare_ABS(PSCROL(PREPARE_CASE_ABS));      // Preheat ABS
   #endif
+
   #if HAS_PREHEAT
     if (PVISI(PREPARE_CASE_COOL)) Item_Prepare_Cool(PSCROL(PREPARE_CASE_COOL));   // Cooldown
   #endif
   if (PVISI(PREPARE_CASE_LANG)) Item_Prepare_Lang(PSCROL(PREPARE_CASE_LANG));     // Language CN/EN
+  if (PVISI(PREPARE_CASE_CHANGE_FILAMENT_200C)) Define_Item(PSCROL(PREPARE_CASE_CHANGE_FILAMENT_200C), F("Change Filament 200C"));
+  if (PVISI(PREPARE_CASE_CHANGE_FILAMENT_250C)) Define_Item(PSCROL(PREPARE_CASE_CHANGE_FILAMENT_250C), F("Change Filament 250C"));
+  if (PVISI(PREPARE_CASE_CHANGE_FILAMENT_260C)) Define_Item(PSCROL(PREPARE_CASE_CHANGE_FILAMENT_260C), F("Change Filament 260C"));
 
   if (select_prepare.now) Draw_Menu_Cursor(PSCROL(select_prepare.now));
 }
@@ -2276,6 +2288,10 @@ void HMI_Prepare() {
         #if HAS_HOTEND
           if (index_prepare == PREPARE_CASE_ABS) Item_Prepare_ABS(MROWS);
         #endif
+        if (index_prepare == PREPARE_CASE_CHANGE_FILAMENT_200C) Define_Item(MROWS, F("Change Filament 200C"));
+        if (index_prepare == PREPARE_CASE_CHANGE_FILAMENT_250C) Define_Item(MROWS, F("Change Filament 250C"));
+        if (index_prepare == PREPARE_CASE_CHANGE_FILAMENT_260C) Define_Item(MROWS, F("Change Filament 260C"));
+
         #if HAS_PREHEAT
           if (index_prepare == PREPARE_CASE_COOL) Item_Prepare_Cool(MROWS);
         #endif
@@ -2330,6 +2346,18 @@ void HMI_Prepare() {
         break;
       case PREPARE_CASE_DISA: // Disable steppers
         queue.inject_P(PSTR("M84"));
+        break;
+      case PREPARE_CASE_CHANGE_FILAMENT_200C: 
+        thermalManager.setTargetHotend(200, 0);
+        queue.inject_P(PSTR("M600")); 
+        break;
+      case PREPARE_CASE_CHANGE_FILAMENT_250C: 
+        thermalManager.setTargetHotend(250, 0);
+        queue.inject_P(PSTR("M600")); 
+        break;
+      case PREPARE_CASE_CHANGE_FILAMENT_260C: 
+        thermalManager.setTargetHotend(260, 0);
+        queue.inject_P(PSTR("M600")); 
         break;
       case PREPARE_CASE_HOME: // Homing
         checkkey = Last_Prepare;
