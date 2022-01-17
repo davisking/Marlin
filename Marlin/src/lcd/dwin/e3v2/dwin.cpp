@@ -643,7 +643,7 @@ inline void Item_Prepare_Home(const uint8_t row) {
 
   inline void Define_Item(const uint8_t row, const __FlashStringHelper *name) {
     DWIN_Draw_String(false, false, font8x16, Color_White, Color_Bg_Black, LBLX, MBASE(row), name);
-    Draw_Menu_Line(row, ICON_Info);
+    Draw_Menu_Line(row, ICON_Extruder);
   }
 
 #if HAS_PREHEAT
