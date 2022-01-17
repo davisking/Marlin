@@ -87,6 +87,8 @@ bool pause_print(const float &retract, const xyz_pos_t &park_point, const float 
 
 void wait_for_confirmation(const bool is_reload=false, const int8_t max_beep_count=0 DXC_PARAMS);
 
+void change_filament();
+
 void resume_print(const float &slow_load_length=0, const float &fast_load_length=0, const float &extrude_length=ADVANCED_PAUSE_PURGE_LENGTH,
                     const int8_t max_beep_count=0, int16_t targetTemp=0 DXC_PARAMS);
 

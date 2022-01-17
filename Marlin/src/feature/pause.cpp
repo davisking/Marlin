@@ -562,6 +562,58 @@ void wait_for_confirmation(const bool is_reload/*=false*/, const int8_t max_beep
   #endif
 }
 
+void change_filament() {
+  ensure_safe_temperature();
+
+  // Retract filament
+  unscaled_e_move(-FILAMENT_UNLOAD_PURGE_RETRACT, PAUSE_PARK_RETRACT_FEEDRATE);
+
+  // Wait for filament to cool
+  safe_delay(FILAMENT_UNLOAD_PURGE_DELAY);
+
+
+  // Quickly purge and then we immediately unload.  This helps keep the end of the unloaded filament
+  // from being large or having a long thin string on it.
+  unscaled_e_move((FILAMENT_UNLOAD_PURGE_RETRACT + FILAMENT_UNLOAD_PURGE_LENGTH),
+                  (FILAMENT_UNLOAD_PURGE_FEEDRATE));
+
+
+  const float saved_acceleration = planner.settings.retract_acceleration;
+
+  // Unload filament
+  planner.settings.retract_acceleration = FILAMENT_CHANGE_UNLOAD_ACCEL;
+  unscaled_e_move(-FILAMENT_CHANGE_UNLOAD_LENGTH, FILAMENT_CHANGE_UNLOAD_FEEDRATE);
+
+  // Now wait for the user to say it's time to load new filament
+  wait_for_confirmation(true, FILAMENT_CHANGE_ALERT_BEEPS DXC_PASS);
+
+  // Re-enable the heaters if they timed out
+  HOTEND_LOOP() thermalManager.reset_hotend_idle_timer(e);
+
+  // Slow Load filament
+  unscaled_e_move(FILAMENT_CHANGE_SLOW_LOAD_LENGTH, FILAMENT_CHANGE_SLOW_LOAD_FEEDRATE);
+  // Fast Load filament
+  planner.settings.retract_acceleration = FILAMENT_CHANGE_FAST_LOAD_ACCEL;
+  unscaled_e_move(FILAMENT_CHANGE_FAST_LOAD_LENGTH, FILAMENT_CHANGE_FAST_LOAD_FEEDRATE);
+
+  planner.settings.retract_acceleration = saved_acceleration;
+
+
+  // Then slowly extrude out a little to flush out the nozzle.
+  unscaled_e_move(ADVANCED_PAUSE_PURGE_LENGTH, ADVANCED_PAUSE_PURGE_FEEDRATE);
+
+
+  // Retract to prevent oozing
+  unscaled_e_move(-(PAUSE_PARK_RETRACT_LENGTH), feedRate_t(PAUSE_PARK_RETRACT_FEEDRATE));
+
+  first_impatient_beep(1);
+
+
+  TERN_(HOST_PROMPT_SUPPORT, host_action_prompt_end());
+  TERN_(HAS_DISPLAY, ui.reset_status());
+  TERN_(HAS_LCD_MENU, ui.return_to_status());
+}
+
 /**
  * Resume or Start print procedure
  *
